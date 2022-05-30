@@ -89,7 +89,7 @@ NAPESPACE := pancake
 
 .PHONY: kind-up
 kind-up:	## [ Cluster ] Start a local Kind cluster
-	kind create cluster --name $(CLUSTER_NAME)
+	kind create cluster --name $(CLUSTER_NAME) --config config/kind-config.yaml
 	kubectl create namespace pancake
 	kubectl config set-context --current --namespace=$(NAPESPACE)
 
