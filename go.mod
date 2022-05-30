@@ -1,3 +1,3 @@
-module mystman.com/go-kub-stub
+module mystman.com/animated-pancake
 
 go 1.18

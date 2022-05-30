@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"mystman.com/go-kub-stub/internal/service"
+	"mystman.com/animated-pancake/internal/service"
 )
 
 // LDFLAGS build tags

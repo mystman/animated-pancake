@@ -1,8 +1,8 @@
 #=======| Defaults |=======
-.DEFAULT_GOAL := run
+.DEFAULT_GOAL := build
 
 #=======| Project settings |=======
-BINARY_NAME=go-kub-stub
+BINARY_NAME=animated-pancake
 BUILD_DIR=./bin
 
 #=======| Build flags |=======
@@ -35,16 +35,12 @@ vet: fmt
 
 #=======| Run |=======
 .PHONY: run 
-run: lint vet test  ## [ Run ] Run the main.go (with LDFLAGS)
+run: lint vet test  # [ Run ] Run the main.go (with LDFLAGS)
 	go run cmd/main.go ${LDFLAGS}
 	
 .PHONY: debug
-debug: lint vet cover ## [ Run ] Compile and run with gcflags
+debug: lint vet cover # [ Run ] Compile and run with gcflags
 	go run -gcflags '-m -l' cmd/main.go
-
-.PHONY: start
-start: build ## [ Run ] Build and execute binary
-	./${BUILD_DIR}/${BINARY_NAME}
 
 #=======| Build |=======
 .PHONY: build 
@@ -52,13 +48,13 @@ build: lint vet cover ## [ Build ] Build the project binary
 	go build ${LDFLAGS} -o ${BUILD_DIR}/${BINARY_NAME} cmd/main.go
 
 .PHONY: build_release
-build_release: ## [ Build ] To be used from Dockerfile for building a release
+build_release: # [ Build ] To be used from Dockerfile for building a release
 	go build ${LDFLAGS} -o ${BUILD_DIR}/service cmd/main.go
 
 
 
 .PHONY: clean
-clean: ## [ Build ] Clean the project binary and trace files
+clean: # [ Build ] Clean the project binary and trace files
 	go clean
 	rm -rf ./bin
 	rm -f copy_trace.out
@@ -72,68 +68,48 @@ test: ## [ Test ] Execute tests
 cover: ## [ Test ] Test coverage
 	go test -cover ./...
 
-.PHONY: external_test
-external_test: ## [ Test ] Executes binary form shell with params and stdin
-	echo "1 2 3 4 5" | ${BUILD_DIR}/${BINARY_NAME} param1 param2 param3 
-
-
 #=======| Debug - Trace & Benchmark |=======
-.PHONY: trace
-trace: ## [ Debug ] Run tests with trace
-	go test ./... -trace=copy_trace.out
-
-.PHONY: trace_show 
-trace_show: trace ## [ Debug ] Takes copy_trace.out file and displays it in Trace viewer
-	go tool trace copy_trace.out
-	
 .PHONY: bench
-bench: ## [ Debug ] Run benchmark
+bench: # [ Debug ] Run benchmark
 	go test -v -run="none" -bench="BenchmarkMain" -benchmem	
 
 .PHONY: bench_long 
-bench_long: ## [ Debug ] Run long benchmark
+bench_long: # [ Debug ] Run long benchmark
 	go test -v -run="none" -bench="BenchmarkMain" -benchmem -benchtime=3s -count 3 ./cmd
 
-.PHONY: fuzz
-fuzz: ## [ Debug ] Run fuzzing
-	go test -fuzz=. -fuzztime=10s ./...
-
-
-
 #=======| Containers |=======
-.PHONY: podman-build
-podman-build: minikube-use-podman ## Build container image with Podman
-	podman build -t ${BUILD_NAME}:${BUILD_VERSION} .
-
 .PHONY: docker-build
-docker-build: minikube-use-docker ## Build container image with Podman
+docker-build: ## [ Container] Build container image with Docker
 	docker build -t ${BUILD_NAME}:${BUILD_VERSION} .
 
 
 #=======| Cluster |=======
-.PHONY: minikube-use-podman
-minikube-use-podman:
-	eval $(minikube -p minikube podman-env)	
+CLUSTER_NAME := pancake-cluster
+NAPESPACE := pancake
 
-.PHONY: minikube-use-docker
-minikube-use-docker:
-	eval $(minikube -p minikube docker-env)	
+.PHONY: kind-up
+kind-up:	## [ Cluster ] Start a local Kind cluster
+	kind create cluster --name $(CLUSTER_NAME)
+	kubectl create namespace pancake
+	kubectl config set-context --current --namespace=$(NAPESPACE)
 
+.PHONY: kind-down
+kind-down: ## [ Cluster ] Remove the local Kind cluster
+	kind delete cluster --name $(CLUSTER_NAME)
 
-.PHONY: minikube-podman-start
-minikube-podman-start: ## Starts local Minikube cluster with Podman
-	podman machine start
-	minikube start --driver=podman 
+.PHONY: kube-context
+kind-ctx:
+	kubectl config set-context --current --namespace=$(NAPESPACE)
 
-.PHONY: minikube-start
-minikube-start: ## Starts a default local Minikube cluster
-	minikube start
+kind-load:
+	kind load docker-image ${BUILD_NAME}:${BUILD_VERSION} --name=$(CLUSTER_NAME)
 
 
 .PHONY: pod-deploy
-pod-deploy: ## Deploy a pod with the image (to default namespace)
-	kubectl run ${BUILD_NAME} --image=${BUILD_NAME}:${BUILD_VERSION} --image-pull-policy=Never
+pod-deploy: kind-load	 ## [ k8s ] Deploy a pod with the image
+	kubectl run ${BUILD_NAME} --image=${BUILD_NAME}:${BUILD_VERSION} --image-pull-policy=Never -n=$(NAPESPACE)
+#	 -o=yaml --dry-run=client
 
 .PHONY: pod-delete
-pod-delete: ## Delete the pod
+pod-delete: 	## [ k8s ] Delete the deployed pod
 	kubectl delete po ${BUILD_NAME}

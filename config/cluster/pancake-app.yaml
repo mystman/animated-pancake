@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: animated-pancake
+  name: animated-pancake
+  namespace: pancake
+spec:
+  containers:
+  - image: animated-pancake:1.0
+    imagePullPolicy: Never
+    name: animated-pancake
