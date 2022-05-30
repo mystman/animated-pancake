@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"mystman.com/animated-pancake/internal/data"
 	"mystman.com/animated-pancake/internal/service"
 )
 
@@ -19,7 +20,6 @@ func main() {
 	log.Printf("Staring main %v with params: %v", os.Args[0], os.Args[1:])
 	log.Printf("%v :: verion %v [ built: %v]\n", buildName, buildVersion, buildDate)
 
-	// TODO
 	if err := Run(); err != nil {
 		log.Fatalf("Fatality: %v", err)
 	}
@@ -37,7 +37,9 @@ func Run() error {
 
 	done := make(chan bool, 1)
 
-	svc := service.NewService()
+	// starting the service
+	repo := data.NewRepository()
+	svc := service.NewService(repo)
 
 	go func(svc *service.Service) {
 		for {
