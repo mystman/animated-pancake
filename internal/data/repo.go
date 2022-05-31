@@ -23,7 +23,7 @@ type Repo struct {
 	l      sync.RWMutex
 }
 
-// Temporary ID generation - thread safe
+// Temporary -  thread safe ID generation for testing
 func (r *Repo) newID() string {
 	r.l.Lock()
 	defer r.l.Unlock()
@@ -68,8 +68,14 @@ func (r *Repo) GetAllData(ID string, typ string) ([]Data, error) {
 }
 
 // NewRepository - creates a new instance Repository
-func NewRepository() *Repository {
-	log.Printf("Initializing new repository")
+func NewRepository(dbFilePath string) *Repository {
+
+	if len(dbFilePath) == 0 {
+		log.Fatalf("Repository file location is required")
+	}
+	log.Printf("Initializing new repository at %v", dbFilePath)
+
+	InitBoltDB(dbFilePath)
 
 	mp := make(map[int]Data)
 

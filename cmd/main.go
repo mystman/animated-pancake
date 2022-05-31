@@ -10,10 +10,14 @@ import (
 	"mystman.com/animated-pancake/internal/service"
 )
 
-// LDFLAGS build tags
+// LDFLAGS build tags:
 var buildName string = "dev_build"
 var buildVersion string = "default_version"
 var buildDate string = "-"
+
+// Application settings:
+// TODO - potentially can take this from args using flag package
+var dbFilePath = "/usr/share/pancake-data/anim-pancake.db"
 
 func main() {
 
@@ -38,9 +42,10 @@ func Run() error {
 	done := make(chan bool, 1)
 
 	// starting the service
-	repo := data.NewRepository()
+	repo := data.NewRepository(dbFilePath)
 	svc := service.NewService(repo)
 
+	// service
 	go func(svc *service.Service) {
 		for {
 			signal := <-shutdown
