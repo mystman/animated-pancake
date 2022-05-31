@@ -6,7 +6,14 @@ metadata:
   name: animated-pancake
   namespace: pancake
 spec:
+  volumes:
+    - name: pancake-pv-storage
+      persistentVolumeClaim:
+        claimName: pancake-pv-claim
   containers:
   - image: animated-pancake:1.0
     imagePullPolicy: Never
     name: animated-pancake
+    volumeMounts:
+      - mountPath: "/usr/share/pancake-data"
+        name: pancake-pv-storage

@@ -15,6 +15,12 @@ LDFLAGS=-ldflags="-w -s \
 -X 'main.buildVersion=${BUILD_VERSION}' \
 -X 'main.buildDate=${BUILD_DATETIME}'"
 
+
+
+## SQLite driver needs this and CGO_ENABLED=1 in the Docker file
+#-linkmode external -extldflags -static\
+#go build -ldflags "-linkmode external -extldflags -static"
+
 #=======| Help |=======
 .PHONY: help
 help:  ## Display help
@@ -101,15 +107,22 @@ kind-down: ## [ Cluster ] Remove the local Kind cluster
 kind-ctx:
 	kubectl config set-context --current --namespace=$(NAPESPACE)
 
+.PHONY: kind-load
 kind-load:
 	kind load docker-image ${BUILD_NAME}:${BUILD_VERSION} --name=$(CLUSTER_NAME)
+
+.PHONY: kind-deploy ## [ Cluster ] (Re)deploy pods to the local Kind cluster
+kind-deploy: pod-delete docker-build kind-load pod-deploy
 
 
 .PHONY: pod-deploy
 pod-deploy: kind-load	 ## [ k8s ] Deploy a pod with the image
-	kubectl run ${BUILD_NAME} --image=${BUILD_NAME}:${BUILD_VERSION} --image-pull-policy=Never -n=$(NAPESPACE)
-#	 -o=yaml --dry-run=client
+#	kubectl run ${BUILD_NAME} --image=${BUILD_NAME}:${BUILD_VERSION} --image-pull-policy=Never -n=$(NAPESPACE)
+	kubectl apply -f config/cluster/pancake-ns.yaml
+	kubectl apply -f config/cluster/pancake-storage.yaml
+	kubectl apply -f config/cluster/pancake-app.yaml
+
 
 .PHONY: pod-delete
 pod-delete: 	## [ k8s ] Delete the deployed pod
-	kubectl delete po ${BUILD_NAME}
+	kubectl delete pod ${BUILD_NAME} --ignore-not-found --grace-period=3
