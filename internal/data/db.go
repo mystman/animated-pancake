@@ -1,6 +1,7 @@
 package data
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -11,7 +12,7 @@ import (
 //BucketName - name of the BoltDB bucket
 // const BucketName = "pancake"
 
-//InitBoltDB - initialize a BoltDB
+//InitBoltDB - initialize a BoltDB, create a bucket (if not exist) and return a reference for the repo
 func InitBoltDB(path string, bucketName string) (*bolt.DB, error) {
 
 	// Initializing the DB
@@ -34,6 +35,62 @@ func InitBoltDB(path string, bucketName string) (*bolt.DB, error) {
 
 	return db, nil
 }
+
+// getDataByID - returns an entry or an error
+func getDataByID(db *bolt.DB, ID string) ([]byte, error) {
+	log.Printf("Retrieving data by ID: %v", ID)
+
+	var entry []byte
+
+	err := db.View(func(tx *bolt.Tx) error {
+
+		b := tx.Bucket([]byte(BucketName))
+		if b == nil {
+			return fmt.Errorf("Getting bucket failed")
+		}
+
+		entry = b.Get([]byte(ID))
+
+		return nil
+	})
+
+	return entry, err
+}
+
+// getDataByID - returns all entries or an error
+func getAllEntires(db *bolt.DB) ([]Data, error) {
+	log.Printf("Retrieving all entries")
+
+	entries := make([]Data, 0)
+
+	err := db.View(func(tx *bolt.Tx) error {
+
+		b := tx.Bucket([]byte(BucketName))
+		if b == nil {
+			return fmt.Errorf("Getting bucket failed")
+		}
+
+		c := b.Cursor()
+
+		var tmpData Data
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			err2 := json.Unmarshal(v, &tmpData)
+			if err2 != nil {
+				// on fail, just skip for now
+				continue
+			}
+			entries = append(entries, tmpData)
+		}
+
+		return nil
+	})
+
+	return entries, err
+}
+
+//==================================================================
+// Test functions
+//==================================================================
 
 // testBoldDB - Testing BoltDB features
 func TestBoldDB(db *bolt.DB) {
@@ -100,51 +157,6 @@ func testWrite(db *bolt.DB, ID string) error {
 
 	return err
 
-}
-
-func getDataByID(db *bolt.DB, ID string) ([]byte, error) {
-	log.Printf("Retrieving data by ID: %v", ID)
-
-	var entry []byte
-
-	err := db.View(func(tx *bolt.Tx) error {
-
-		b := tx.Bucket([]byte(BucketName))
-		if b == nil {
-			return fmt.Errorf("Getting bucket failed")
-		}
-
-		entry = b.Get([]byte(ID))
-
-		// should return nil to complete the transaction
-		return nil
-	})
-
-	return entry, err
-}
-
-func getAllEntires(db *bolt.DB) ([]string, error) {
-	log.Printf("Retrieving all entries")
-
-	entries := make([]string, 0)
-
-	err := db.View(func(tx *bolt.Tx) error {
-
-		b := tx.Bucket([]byte(BucketName))
-		if b == nil {
-			return fmt.Errorf("Getting bucket failed")
-		}
-
-		c := b.Cursor()
-
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			entries = append(entries, fmt.Sprintf("key=%s, value=%s", k, v))
-		}
-
-		return nil
-	})
-
-	return entries, err
 }
 
 //==================================================================

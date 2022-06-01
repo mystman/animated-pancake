@@ -32,8 +32,7 @@ func (r *Repo) PostData(tp string, d Data) (Data, error) {
 
 	dta := Data{
 		Metadata: Metadata{
-			// ID:          r.newID(),
-			LastUpdated: time.Now().Format(time.RFC3339),
+			LastUpdated: getISOTimestamp(),
 			Type:        tp,
 		},
 		Payload: d.Payload,
@@ -42,24 +41,18 @@ func (r *Repo) PostData(tp string, d Data) (Data, error) {
 	var ID string
 
 	err := r.db.Update(func(tx *bolt.Tx) error {
-		// Retrieve the users bucket.
-		// This should be created when the DB is first opened.
+
 		b := tx.Bucket([]byte(r.bucketName))
 
-		// Generate ID for the user.
-		// This returns an error only if the Tx is closed or not writeable.
-		// That can't happen in an Update() call so I ignore the error check.
 		id, _ := b.NextSequence()
 		ID = fmt.Sprint(id)
 		dta.Metadata.ID = ID
 
-		// Marshal user data into bytes.
 		buf, err := json.Marshal(dta)
 		if err != nil {
 			return err
 		}
 
-		// Persist bytes to users bucket.
 		return b.Put([]byte(dta.Metadata.ID), buf)
 	})
 
@@ -67,8 +60,7 @@ func (r *Repo) PostData(tp string, d Data) (Data, error) {
 		return Data{}, err
 	}
 
-	// Testing all
-	// TestDisplayAllEnteries(r.db)
+	// Read back and return the entry
 	got, err := getDataByID(r.db, ID)
 	if err != nil {
 		return Data{}, err
@@ -86,7 +78,19 @@ func (r *Repo) UpdateData(d Data) (Data, error) {
 
 // GetData - based on an ID it returns Data
 func (r *Repo) GetData(ID string) (Data, error) {
-	return Data{}, nil
+
+	d, err := getDataByID(r.db, ID)
+	if err != nil {
+		return Data{}, err
+	}
+
+	var dta Data
+	err = json.Unmarshal(d, &dta)
+	if err != nil {
+		return Data{}, err
+	}
+
+	return dta, nil
 }
 
 // DeleteData - based on the ID it removes a stored Data
@@ -96,7 +100,18 @@ func (r *Repo) DeleteData(ID string) error {
 
 // GetAllData - based on the parameters it returns the matching Data as a slice
 func (r *Repo) GetAllData(ID string, typ string) ([]Data, error) {
-	return []Data{}, nil
+
+	dt, err := getAllEntires(r.db)
+
+	if err != nil {
+		return []Data{}, err
+	}
+
+	// TODO: filter out not requied OR delegate the filtering to getAllEntires()
+
+	log.Printf("GetAllData retrieved %v entries", len(dt))
+
+	return dt, nil
 }
 
 // NewRepository - creates a new instance Repository
@@ -120,4 +135,8 @@ func NewRepository(dbFilePath string) *Repository {
 	rp := Repository(r)
 
 	return &rp
+}
+
+func getISOTimestamp() string {
+	return time.Now().Format(time.RFC3339)
 }
