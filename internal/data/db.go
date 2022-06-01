@@ -9,9 +9,6 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-//BucketName - name of the BoltDB bucket
-// const BucketName = "pancake"
-
 //InitBoltDB - initialize a BoltDB, create a bucket (if not exist) and return a reference for the repo
 func InitBoltDB(path string, bucketName string) (*bolt.DB, error) {
 
@@ -86,77 +83,6 @@ func getAllEntires(db *bolt.DB) ([]Data, error) {
 	})
 
 	return entries, err
-}
-
-//==================================================================
-// Test functions
-//==================================================================
-
-// testBoldDB - Testing BoltDB features
-func TestBoldDB(db *bolt.DB) {
-	var ID string
-	var err error
-
-	// Test: writing entries
-	for i := 0; i < 5; i++ {
-		ID = fmt.Sprintf("task# - %s", time.Now().String())
-		err = testWrite(db, ID)
-		if err != nil {
-			log.Fatalf("Writing %s failed: %v", ID, err)
-		}
-	}
-
-	// Test: getting one entry
-	val, err := getDataByID(db, ID)
-	if err != nil {
-		log.Fatalf("Retrieving data by ID failed: %v", err)
-	}
-
-	log.Printf("Retrieved data for ID=%v | %v", ID, val)
-
-	//Test: getting all entries
-	entries, err := getAllEntires(db)
-	if err != nil {
-		log.Fatalf("Retrieving all entries failed: %v", err)
-	}
-
-	for i, e := range entries {
-		log.Printf("[%d] %v", i, e)
-	}
-
-}
-
-// testBoldDB - Testing BoltDB features
-func TestDisplayAllEnteries(db *bolt.DB) {
-	var err error
-
-	//Test: getting all entries
-	entries, err := getAllEntires(db)
-	if err != nil {
-		log.Fatalf("Retrieving all entries failed: %v", err)
-	}
-
-	for i, e := range entries {
-		log.Printf("[%d] %v", i, e)
-	}
-
-}
-
-func testWrite(db *bolt.DB, ID string) error {
-	log.Printf("About to test BoltDB")
-
-	// Test
-	err := db.Update(
-		func(tx *bolt.Tx) error {
-			bucket, err := tx.CreateBucketIfNotExists([]byte(BucketName))
-			if err != nil {
-				return fmt.Errorf("create bucket: %s", err)
-			}
-			return bucket.Put([]byte(ID), []byte("Ipsum Lorem - Test entry"))
-		})
-
-	return err
-
 }
 
 //==================================================================
