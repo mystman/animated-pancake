@@ -9,7 +9,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-//bucketName - name of the BoltDB bucket
+//BucketName - name of the BoltDB bucket
 const BucketName = "pancake"
 
 // Repository - interface for the data storage
