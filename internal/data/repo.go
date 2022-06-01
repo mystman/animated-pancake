@@ -1,11 +1,16 @@
 package data
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
-	"strconv"
-	"sync"
 	"time"
+
+	bolt "go.etcd.io/bbolt"
 )
+
+//bucketName - name of the BoltDB bucket
+const BucketName = "pancake"
 
 // Repository - interface for the data storage
 type Repository interface {
@@ -18,19 +23,8 @@ type Repository interface {
 
 // Repo - is an implementetion of the Repository interface
 type Repo struct {
-	m      map[int]Data
-	lastID int //temporary
-	l      sync.RWMutex
-}
-
-// Temporary -  thread safe ID generation for testing
-func (r *Repo) newID() string {
-	r.l.Lock()
-	defer r.l.Unlock()
-
-	r.lastID++
-
-	return strconv.Itoa(r.lastID)
+	db         *bolt.DB
+	bucketName string
 }
 
 // PostData - takes Data and stores it as a new entity
@@ -38,12 +32,50 @@ func (r *Repo) PostData(tp string, d Data) (Data, error) {
 
 	dta := Data{
 		Metadata: Metadata{
-			ID:          r.newID(),
+			// ID:          r.newID(),
 			LastUpdated: time.Now().Format(time.RFC3339),
 			Type:        tp,
 		},
 		Payload: d.Payload,
 	}
+
+	var ID string
+
+	err := r.db.Update(func(tx *bolt.Tx) error {
+		// Retrieve the users bucket.
+		// This should be created when the DB is first opened.
+		b := tx.Bucket([]byte(r.bucketName))
+
+		// Generate ID for the user.
+		// This returns an error only if the Tx is closed or not writeable.
+		// That can't happen in an Update() call so I ignore the error check.
+		id, _ := b.NextSequence()
+		ID = fmt.Sprint(id)
+		dta.Metadata.ID = ID
+
+		// Marshal user data into bytes.
+		buf, err := json.Marshal(dta)
+		if err != nil {
+			return err
+		}
+
+		// Persist bytes to users bucket.
+		return b.Put([]byte(dta.Metadata.ID), buf)
+	})
+
+	if err != nil {
+		return Data{}, err
+	}
+
+	// Testing all
+	// TestDisplayAllEnteries(r.db)
+	got, err := getDataByID(r.db, ID)
+	if err != nil {
+		return Data{}, err
+	}
+
+	log.Printf("Created new entry %v: %v", ID, string(got))
+
 	return dta, nil
 }
 
@@ -73,14 +105,16 @@ func NewRepository(dbFilePath string) *Repository {
 	if len(dbFilePath) == 0 {
 		log.Fatalf("Repository file location is required")
 	}
-	log.Printf("Initializing new repository at %v", dbFilePath)
+	log.Printf("Initializing repository at %v", dbFilePath)
 
-	InitBoltDB(dbFilePath)
-
-	mp := make(map[int]Data)
+	boltDB, err := InitBoltDB(dbFilePath, BucketName)
+	if err != nil {
+		log.Fatalf("Initializing Bolt DB failed: %v", err)
+	}
 
 	r := &Repo{
-		m: mp,
+		db:         boltDB,
+		bucketName: BucketName,
 	}
 
 	rp := Repository(r)
