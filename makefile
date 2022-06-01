@@ -126,3 +126,7 @@ pod-deploy: kind-load	 ## [ k8s ] Deploy a pod with the image
 .PHONY: pod-delete
 pod-delete: 	## [ k8s ] Delete the deployed pod
 	kubectl delete pod ${BUILD_NAME} --ignore-not-found --grace-period=3
+
+.PHONY: pod-log
+pod-log: 		## [ k8s ] Get logs of the pod streamed
+	kubectl logs -f animated-pancake
