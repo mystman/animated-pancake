@@ -38,7 +38,7 @@ func (svc *Service) GetAllData(ID string, typ string) ([]data.Data, error) {
 
 // NewService - creates and returns a new instace of a serive
 func NewService(repo *data.Repository) *Service {
-	log.Printf("Initializing new service")
+	log.Printf("Initializing service")
 	return &Service{
 		Repo: *repo,
 	}
