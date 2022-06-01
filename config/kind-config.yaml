@@ -5,5 +5,4 @@ nodes:
   extraPortMappings:
   - containerPort: 6543
     hostPort: 6543
-    listenAddress: "0.0.0.0"
-    protocol: tcp
+    protocol: TCP
