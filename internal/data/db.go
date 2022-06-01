@@ -9,23 +9,34 @@ import (
 )
 
 //BucketName - name of the BoltDB bucket
-const BucketName = "pancake"
+// const BucketName = "pancake"
 
 //InitBoltDB - initialize a BoltDB
-func InitBoltDB(path string) {
+func InitBoltDB(path string, bucketName string) (*bolt.DB, error) {
+
+	// Initializing the DB
 	db, err := bolt.Open(path, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	defer db.Close()
 
-	// Testing features
-	testBoldDB(db)
+	// Creating a bucket
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte(bucketName))
+		if err != nil {
+			return fmt.Errorf("create bucket failed: %s", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
+	return db, nil
 }
 
-// Testing BoltDB features
-func testBoldDB(db *bolt.DB) {
+// testBoldDB - Testing BoltDB features
+func TestBoldDB(db *bolt.DB) {
 	var ID string
 	var err error
 
@@ -39,12 +50,28 @@ func testBoldDB(db *bolt.DB) {
 	}
 
 	// Test: getting one entry
-	val, err := getByID(db, ID)
+	val, err := getDataByID(db, ID)
 	if err != nil {
 		log.Fatalf("Retrieving data by ID failed: %v", err)
 	}
 
 	log.Printf("Retrieved data for ID=%v | %v", ID, val)
+
+	//Test: getting all entries
+	entries, err := getAllEntires(db)
+	if err != nil {
+		log.Fatalf("Retrieving all entries failed: %v", err)
+	}
+
+	for i, e := range entries {
+		log.Printf("[%d] %v", i, e)
+	}
+
+}
+
+// testBoldDB - Testing BoltDB features
+func TestDisplayAllEnteries(db *bolt.DB) {
+	var err error
 
 	//Test: getting all entries
 	entries, err := getAllEntires(db)
@@ -75,7 +102,7 @@ func testWrite(db *bolt.DB, ID string) error {
 
 }
 
-func getByID(db *bolt.DB, ID string) ([]byte, error) {
+func getDataByID(db *bolt.DB, ID string) ([]byte, error) {
 	log.Printf("Retrieving data by ID: %v", ID)
 
 	var entry []byte
