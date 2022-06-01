@@ -96,7 +96,7 @@ NAPESPACE := pancake
 .PHONY: kind-up
 kind-up:	## [ Cluster ] Start a local Kind cluster
 	kind create cluster --name $(CLUSTER_NAME) --config config/kind-config.yaml
-	kubectl create namespace pancake
+	kubectl create namespace $(NAPESPACE)
 	kubectl config set-context --current --namespace=$(NAPESPACE)
 
 
@@ -119,9 +119,33 @@ kind-load:
 kind-deploy: pod-delete docker-build kind-load pod-deploy
 
 
+#=======
+.PHONY: minikube-up
+minikube-up:	## [ Cluster ] Start a local Minikube cluster
+	minikube start
+	kubectl create namespace $(NAPESPACE)
+	kubectl config set-context --current --namespace=$(NAPESPACE)
+
+
+.PHONY: minikube-docker
+minikube-docker:
+	./minikube-image-build.sh ${BUILD_NAME} ${BUILD_VERSION}
+
+
+.PHONY: minikube-shutdown
+minikube-shutdown: ## [ Cluster ] Remove the local Minikube cluster
+	minikube delete --profile=$(CLUSTER_NAME)
+
+.PHONY: minikube-deploy ## [ Cluster ] (Re)deploy pods to the local Minikube cluster
+minikube-deploy: pod-delete minikube-docker docker-build pod-deploy
+
+.PHONY: minikube-tunnel ## [ Cluster ] Starts Minikube tunnel for LoadBalancer support
+minikube-tunnel:
+	minikube tunnel
+
 #=======| Kubernetes |=======
 .PHONY: pod-deploy
-pod-deploy: kind-load	 ## [ k8s ] Deploy a pod with the image
+pod-deploy:	## [ k8s ] Deploy a pod with the image
 #	kubectl run ${BUILD_NAME} --image=${BUILD_NAME}:${BUILD_VERSION} --image-pull-policy=Never -n=$(NAPESPACE)
 	kubectl apply -f config/cluster/pancake-ns.yaml
 	kubectl apply -f config/cluster/pancake-storage.yaml
