@@ -99,22 +99,27 @@ kind-up:	## [ Cluster ] Start a local Kind cluster
 	kubectl create namespace pancake
 	kubectl config set-context --current --namespace=$(NAPESPACE)
 
+
 .PHONY: kind-down
 kind-down: ## [ Cluster ] Remove the local Kind cluster
 	kind delete cluster --name $(CLUSTER_NAME)
 
-.PHONY: kube-context
+
+.PHONY: kind-ctx
 kind-ctx:
 	kubectl config set-context --current --namespace=$(NAPESPACE)
+
 
 .PHONY: kind-load
 kind-load:
 	kind load docker-image ${BUILD_NAME}:${BUILD_VERSION} --name=$(CLUSTER_NAME)
 
+
 .PHONY: kind-deploy ## [ Cluster ] (Re)deploy pods to the local Kind cluster
 kind-deploy: pod-delete docker-build kind-load pod-deploy
 
 
+#=======| Kubernetes |=======
 .PHONY: pod-deploy
 pod-deploy: kind-load	 ## [ k8s ] Deploy a pod with the image
 #	kubectl run ${BUILD_NAME} --image=${BUILD_NAME}:${BUILD_VERSION} --image-pull-policy=Never -n=$(NAPESPACE)
@@ -126,6 +131,7 @@ pod-deploy: kind-load	 ## [ k8s ] Deploy a pod with the image
 .PHONY: pod-delete
 pod-delete: 	## [ k8s ] Delete the deployed pod
 	kubectl delete pod ${BUILD_NAME} --ignore-not-found --grace-period=3
+
 
 .PHONY: pod-log
 pod-log: 		## [ k8s ] Get logs of the pod streamed
