@@ -1,5 +1,5 @@
 #=======| Defaults |=======
-.DEFAULT_GOAL := build
+.DEFAULT_GOAL := help
 
 #=======| Project settings |=======
 BINARY_NAME=animated-pancake
@@ -16,9 +16,10 @@ LDFLAGS=-ldflags="-w -s \
 -X 'main.buildDate=${BUILD_DATETIME}'"
 
 #=======| Help |=======
+## Display help
 .PHONY: help
-help:  ## Display help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+help:  
+	@awk 'BEGIN {FS = ":.*##"; printf "\n\"$(BINARY_NAME) $(BUILD_VERSION)\" makefile\n\nUsage:  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 	
 #=======| Compile |=======
 .PHONY: fmt
@@ -39,12 +40,12 @@ run: lint vet test  # [ Run ] Run the main.go (with LDFLAGS)
 	go run cmd/main.go ${LDFLAGS}
 	
 .PHONY: debug
-debug: lint vet cover # [ Run ] Compile and run with gcflags
+debug: lint vet # [ Run ] Compile and run with gcflags
 	go run -gcflags '-m -l' cmd/main.go
 
 #=======| Build |=======
 .PHONY: build 
-build: lint vet cover ## [ Build ] Build the project binary
+build: lint vet ## [ Build ] Build the project binary
 	go build ${LDFLAGS} -o ${BUILD_DIR}/${BINARY_NAME} cmd/main.go
 
 .PHONY: build_release
@@ -64,10 +65,6 @@ clean: # [ Build ] Clean the project binary and trace files
 test: ## [ Test ] Execute tests
 	go test ./... -v
 
-.PHONY: cover
-cover: ## [ Test ] Test coverage
-	go test -cover ./...
-
 #=======| Debug - Trace & Benchmark |=======
 .PHONY: bench
 bench: # [ Debug ] Run benchmark
@@ -83,19 +80,25 @@ docker-build: ## [ Container] Build container image with Docker
 	docker build -t ${BUILD_NAME}:${BUILD_VERSION} .
 
 
+.PHONY: minikube-docker
+minikube-docker: ## [ Container] Build container image with Minikube's Docker
+	./minikube-image-build.sh ${BUILD_NAME} ${BUILD_VERSION}
+
 #=======| Cluster |=======
 CLUSTER_NAME := pancake-cluster
 NAPESPACE := pancake
 
+## [ Cluster ] Start a local Kind cluster
 .PHONY: kind-up
-kind-up:	## [ Cluster ] Start a local Kind cluster
+kind-up:	
 	kind create cluster --name $(CLUSTER_NAME) --config config/cluster/kind-config.yaml
 	kubectl create namespace $(NAPESPACE)
 	kubectl config set-context --current --namespace=$(NAPESPACE)
 
 
+## [ Cluster ] Remove the local Kind cluster
 .PHONY: kind-down
-kind-down: ## [ Cluster ] Remove the local Kind cluster
+kind-down: 
 	kind delete cluster --name $(CLUSTER_NAME)
 
 
@@ -119,12 +122,6 @@ minikube-up:	## [ Cluster ] Start a local Minikube cluster
 	minikube start
 	kubectl create namespace $(NAPESPACE)
 	kubectl config set-context --current --namespace=$(NAPESPACE)
-
-
-.PHONY: minikube-docker
-minikube-docker:
-	./minikube-image-build.sh ${BUILD_NAME} ${BUILD_VERSION}
-
 
 .PHONY: minikube-shutdown
 minikube-shutdown: ## [ Cluster ] Remove the local Minikube cluster
