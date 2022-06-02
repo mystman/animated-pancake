@@ -1,8 +1,6 @@
 package data
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"time"
 
@@ -15,7 +13,7 @@ const BucketName = "pancake"
 // Repository - interface for the data storage
 type Repository interface {
 	PostData(tp string, d Data) (Data, error)
-	UpdateData(d Data) (Data, error)
+	UpdateData(ID string, d Data) error
 	GetData(ID string) (Data, error)
 	DeleteData(ID string) error
 	GetAllData(ID string, typ string) ([]Data, error)
@@ -27,10 +25,30 @@ type Repo struct {
 	bucketName string
 }
 
+// NewRepo - creates a new instance Repository
+func NewRepo(dbFilePath string) *Repo {
+
+	if len(dbFilePath) == 0 {
+		log.Fatalf("Repository file location is required")
+	}
+	log.Printf("Initializing repository at %v", dbFilePath)
+
+	boltDB, err := InitBoltDB(dbFilePath, BucketName)
+	if err != nil {
+		log.Fatalf("Initializing Bolt DB failed: %v", err)
+	}
+
+	return &Repo{
+		db:         boltDB,
+		bucketName: BucketName,
+	}
+
+}
+
 // PostData - takes Data and stores it as a new entity
 func (r *Repo) PostData(tp string, d Data) (Data, error) {
 
-	dta := Data{
+	tmpData := Data{
 		Metadata: Metadata{
 			LastUpdated: getISOTimestamp(),
 			Type:        tp,
@@ -38,61 +56,34 @@ func (r *Repo) PostData(tp string, d Data) (Data, error) {
 		Payload: d.Payload,
 	}
 
-	var ID string
-
-	err := r.db.Update(func(tx *bolt.Tx) error {
-
-		b := tx.Bucket([]byte(r.bucketName))
-
-		id, _ := b.NextSequence()
-		ID = fmt.Sprint(id)
-		dta.Metadata.ID = ID
-
-		buf, err := json.Marshal(dta)
-		if err != nil {
-			return err
-		}
-
-		return b.Put([]byte(dta.Metadata.ID), buf)
-	})
+	dta, err := putData(r.db, tmpData)
 
 	if err != nil {
 		return Data{}, err
 	}
 
-	// Read back and return the entry
-	got, err := getDataByID(r.db, ID)
-	if err != nil {
-		return Data{}, err
-	}
-
-	log.Printf("Created new entry %v: %v", ID, string(got))
+	log.Printf("Created new entry %v: %v", dta.Metadata.ID, dta)
 
 	return dta, nil
-}
-
-// UpdateData - takes Data and stores it as a new entity
-func (r *Repo) UpdateData(d Data) (Data, error) {
-
-	// TODO
-	return Data{}, nil
 }
 
 // GetData - based on an ID it returns Data
 func (r *Repo) GetData(ID string) (Data, error) {
 
-	d, err := getDataByID(r.db, ID)
-	if err != nil {
-		return Data{}, err
-	}
-
-	var dta Data
-	err = json.Unmarshal(d, &dta)
+	dta, err := getDataByID(r.db, ID)
 	if err != nil {
 		return Data{}, err
 	}
 
 	return dta, nil
+}
+
+// UpdateData - takes Data and stores it as a new entity
+func (r *Repo) UpdateData(ID string, d Data) error {
+
+	d.Metadata.LastUpdated = getISOTimestamp()
+
+	return putDataByID(r.db, ID, d)
 }
 
 // DeleteData - based on the ID it removes a stored Data
@@ -114,29 +105,6 @@ func (r *Repo) GetAllData(ID string, typ string) ([]Data, error) {
 	log.Printf("GetAllData retrieved %v entries", len(dt))
 
 	return dt, nil
-}
-
-// NewRepository - creates a new instance Repository
-func NewRepository(dbFilePath string) *Repository {
-
-	if len(dbFilePath) == 0 {
-		log.Fatalf("Repository file location is required")
-	}
-	log.Printf("Initializing repository at %v", dbFilePath)
-
-	boltDB, err := InitBoltDB(dbFilePath, BucketName)
-	if err != nil {
-		log.Fatalf("Initializing Bolt DB failed: %v", err)
-	}
-
-	r := &Repo{
-		db:         boltDB,
-		bucketName: BucketName,
-	}
-
-	rp := Repository(r)
-
-	return &rp
 }
 
 func getISOTimestamp() string {
