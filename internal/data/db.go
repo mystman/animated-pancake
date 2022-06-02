@@ -34,10 +34,10 @@ func InitBoltDB(path string, bucketName string) (*bolt.DB, error) {
 }
 
 // getDataByID - returns an entry or an error
-func getDataByID(db *bolt.DB, ID string) ([]byte, error) {
+func getDataByID(db *bolt.DB, ID string) (Data, error) {
 	log.Printf("Retrieving data by ID: %v", ID)
 
-	var entry []byte
+	var entry Data
 
 	err := db.View(func(tx *bolt.Tx) error {
 
@@ -46,10 +46,19 @@ func getDataByID(db *bolt.DB, ID string) ([]byte, error) {
 			return fmt.Errorf("Getting bucket failed")
 		}
 
-		entry = b.Get([]byte(ID))
+		bs := b.Get([]byte(ID))
+
+		err := json.Unmarshal(bs, &entry)
+		if err != nil {
+			return err
+		}
 
 		return nil
 	})
+
+	if err != nil {
+		return Data{}, err
+	}
 
 	return entry, err
 }
@@ -87,7 +96,7 @@ func getAllEntires(db *bolt.DB) ([]Data, error) {
 
 // deleteDataByID - deletes an entry
 func deleteDataByID(db *bolt.DB, ID string) error {
-	log.Printf("Deleting data by ID: %v", ID)
+	log.Printf(" data by ID: %v", ID)
 
 	err := db.Update(func(tx *bolt.Tx) error {
 
@@ -101,69 +110,57 @@ func deleteDataByID(db *bolt.DB, ID string) error {
 	return err
 }
 
-//==================================================================
-// InitSQLiteDB - Initializes an SQLite DB from a file for testing
-//==================================================================
+// putData - creates a new entry
+func putData(db *bolt.DB, d Data) (Data, error) {
+	log.Print("Creatting new data entry")
 
-// Imports for SQLite:
-// _ "github.com/jmoiron/sqlx"
-// _ "github.com/mattn/go-sqlite3"
+	var ID string
 
-/*
-func InitDB() (*sqlx.DB, error) {
+	err := db.Update(func(tx *bolt.Tx) error {
 
-	location := "/usr/share/pancake-data/pancake.db"
+		b := tx.Bucket([]byte(BucketName))
 
-	db, err := sqlx.Open("sqlite3", location)
+		id, _ := b.NextSequence()
+		ID = fmt.Sprint(id)
+		d.Metadata.ID = ID
+
+		buf, err := json.Marshal(d)
+		if err != nil {
+			return err
+		}
+
+		return b.Put([]byte(d.Metadata.ID), buf)
+	})
 
 	if err != nil {
-		log.Fatalf("Error opening location %v: %v", location, err)
+		return Data{}, err
 	}
 
-	//	defer db.Close()
-
-	err = db.Ping()
+	// Read back and return the entry
+	dt, err := getDataByID(db, ID)
 	if err != nil {
-		log.Fatalf("Error pinging DB %v: %v", db, err)
+		return Data{}, err
 	}
-
-	log.Printf("Pinging DB %v was successfull", db)
-
-	schema := `CREATE TABLE IF NOT EXISTS data (
-		ID INTEGER PRIMARY KEY AUTOINCREMENT,
-		lastUpdated TEXT,
-		type TEXT,
-		data TEXT);`
-
-	result, err := db.Exec(schema)
-	if err != nil {
-		log.Fatalf("Schema creation failed: %v", err)
-	}
-	log.Printf("Schema creation was successfull: %v", result)
-
-	for i := 0; i < 10; i++ {
-		entry := `INSERT INTO data (lastUpdated, type, data) VALUES (?, ?, ?)`
-		db.MustExec(entry, "donno", NetworkType, "{'value':'nonsese'}")
-	}
-
-	log.Println("Insert done")
-
-	rows, err := db.Query("SELECT ID, lastUpdated, type, data FROM data")
-
-	// iterate over each row
-	for rows.Next() {
-		var ID int
-		var lastUpdated, typ, data string
-		err = rows.Scan(&ID, &lastUpdated, &typ, &data)
-
-		log.Printf("Rows data: %v | %v | %v | %v", ID, lastUpdated, typ, data)
-	}
-	// check the error from rows
-	err = rows.Err()
-	if err != nil {
-		log.Printf("Error from the rows: %v", err)
-	}
-
-	return db, nil
+	return dt, nil
 }
-*/
+
+// putDataByID - updates an entry
+func putDataByID(db *bolt.DB, ID string, d Data) error {
+	log.Printf("Updating data by ID: %v", ID)
+
+	err := db.Update(func(tx *bolt.Tx) error {
+
+		b := tx.Bucket([]byte(BucketName))
+
+		d.Metadata.ID = ID
+
+		buf, err := json.Marshal(d)
+		if err != nil {
+			return err
+		}
+
+		return b.Put([]byte(d.Metadata.ID), buf)
+	})
+
+	return err
+}
