@@ -132,8 +132,8 @@ func TestService(t *testing.T) {
 		tmpPayload["subnetName"] = "CHANGEDNET"
 		tmpPayload["ipRange"] = "1.2.3.4/24"
 
-		tmpJsonPayload, _ := json.Marshal(tmpPayload)
-		got.Payload = string(tmpJsonPayload)
+		tmpJSONPayload, _ := json.Marshal(tmpPayload)
+		got.Payload = string(tmpJSONPayload)
 
 		// Perform update
 		err3 := svc.UpdateData(got.Metadata.ID, got)
