@@ -1,5 +1,7 @@
 package data
 
+import "encoding/json"
+
 // Metadata - additional metadata stored with the request
 // It is for internal use only; will not be displayed for clients
 type Metadata struct {
@@ -28,3 +30,16 @@ const (
 	//DataType -
 	DataType = "data"
 )
+
+// AsJSONString - coverts a Data object to a JSON string representation
+func AsJSONString(d Data) string {
+	var jsonString string
+
+	bs, err := json.MarshalIndent(d, "", "  ")
+
+	if err == nil && len(bs) > 0 {
+		jsonString = string(bs)
+	}
+
+	return jsonString
+}
