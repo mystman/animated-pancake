@@ -147,6 +147,9 @@ pod-deploy:	## [ k8s ] Deploy a pod with the image
 pod-delete: 	## [ k8s ] Delete the deployed pod
 	kubectl delete -f config/k8s/pancake-app.yaml --ignore-not-found --grace-period=3
 
+.PHONY: pod-info
+pod-info: 		## [ k8s ] Get kubectl info the cluster elements
+	kubectl get po,svc,pvc,pv -o wide -n $(NAPESPACE)
 
 .PHONY: pod-log
 pod-log: 		## [ k8s ] Get logs of the pod streamed
