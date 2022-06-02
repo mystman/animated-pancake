@@ -15,12 +15,6 @@ LDFLAGS=-ldflags="-w -s \
 -X 'main.buildVersion=${BUILD_VERSION}' \
 -X 'main.buildDate=${BUILD_DATETIME}'"
 
-
-
-## SQLite driver needs this and CGO_ENABLED=1 in the Docker file
-#-linkmode external -extldflags -static\
-#go build -ldflags "-linkmode external -extldflags -static"
-
 #=======| Help |=======
 .PHONY: help
 help:  ## Display help
