@@ -85,6 +85,22 @@ func getAllEntires(db *bolt.DB) ([]Data, error) {
 	return entries, err
 }
 
+// deleteDataByID - deletes an entry
+func deleteDataByID(db *bolt.DB, ID string) error {
+	log.Printf("Deleting data by ID: %v", ID)
+
+	err := db.Update(func(tx *bolt.Tx) error {
+
+		b := tx.Bucket([]byte(BucketName))
+		if b == nil {
+			return fmt.Errorf("Getting bucket failed")
+		}
+
+		return b.Delete([]byte(ID))
+	})
+	return err
+}
+
 //==================================================================
 // InitSQLiteDB - Initializes an SQLite DB from a file for testing
 //==================================================================
