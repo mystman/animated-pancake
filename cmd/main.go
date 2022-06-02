@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"mystman.com/animated-pancake/internal/data"
+	"mystman.com/animated-pancake/internal/handler"
 	"mystman.com/animated-pancake/internal/service"
 )
 
@@ -18,6 +21,7 @@ var buildDate string = "-"
 // Application settings:
 // TODO - potentially can take this from args using flag package
 var dbFilePath = "/usr/share/pancake-data/anim-pancake.db"
+var port = ":6543"
 
 func main() {
 
@@ -36,25 +40,42 @@ func main() {
 func Run() error {
 	log.Printf("Staring service")
 
+	// Channels for OS signal handling
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
-
 	done := make(chan bool, 1)
 
-	// starting the service
-	repo := data.NewRepository(dbFilePath)
-	svc := service.NewService(repo)
+	// Start listening for requests
+	go func() {
+		repo := data.NewRepository(dbFilePath)
+		svc := service.NewService(repo)
+		hnd := handler.NewHandler(svc)
 
-	// service
-	go func(svc *service.Service) {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/v1/", hnd.HandleRoot)
+		mux.HandleFunc(fmt.Sprintf("/v1/%s", data.NetworkType), hnd.HandleNetwork)
+
+		// For liveness probe
+		mux.HandleFunc("/v1/liveness", handler.HandleReadiness)
+
+		server := &http.Server{
+			Addr:    port,
+			Handler: mux,
+		}
+
+		log.Printf("Starting service on port %v", port)
+		err := server.ListenAndServe()
+		log.Fatal("Fatal error:", err)
+	}()
+
+	// Waiting for signal
+	go func() {
 		for {
 			signal := <-shutdown
 			log.Printf("Signal received: %v", signal)
-
 			done <- true
 		}
-	}(svc)
-	log.Printf("Service has started")
+	}()
 
 	// Waiting for shutdown signal
 	<-done
