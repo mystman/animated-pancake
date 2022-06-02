@@ -134,7 +134,7 @@ minikube-docker:
 
 .PHONY: minikube-shutdown
 minikube-shutdown: ## [ Cluster ] Remove the local Minikube cluster
-	minikube delete --profile=$(CLUSTER_NAME)
+	minikube delete
 
 .PHONY: minikube-deploy ## [ Cluster ] (Re)deploy pods to the local Minikube cluster
 minikube-deploy: pod-delete minikube-docker docker-build pod-deploy
