@@ -120,7 +120,8 @@ kind-deploy: pod-delete docker-build kind-load pod-deploy
 .PHONY: minikube-up
 minikube-up:	## [ Cluster ] Start a local Minikube cluster
 	minikube start
-	kubectl create namespace $(NAPESPACE)
+#	kubectl create namespace $(NAPESPACE)
+	kubectl apply -f config/k8s/pancake-ns.yaml
 	kubectl config set-context --current --namespace=$(NAPESPACE)
 
 .PHONY: minikube-shutdown
