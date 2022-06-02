@@ -4,7 +4,6 @@
 
 This a project an example for a clustered REST API with a pesistent JSON docu store.
 
-## Demo
-
-
-[![IMAGE ALT TEXT HERE](https://github.com/mystman/animated-pancake/blob/main/demo/Thumbnail.png)](https://github.com/mystman/animated-pancake/blob/main/demo/Full_demo_1080p.mp4)
+## Demo video
+[demo/Full_demo_1080p.mp4](https://github.com/mystman/animated-pancake/blob/main/demo/Full_demo_1080p.mp4)
+[![Demo](https://github.com/mystman/animated-pancake/blob/main/demo/Thumbnail.png)](https://github.com/mystman/animated-pancake/blob/main/demo/Full_demo_1080p.mp4)
