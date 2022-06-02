@@ -95,7 +95,7 @@ NAPESPACE := pancake
 
 .PHONY: kind-up
 kind-up:	## [ Cluster ] Start a local Kind cluster
-	kind create cluster --name $(CLUSTER_NAME) --config config/kind-config.yaml
+	kind create cluster --name $(CLUSTER_NAME) --config config/cluster/kind-config.yaml
 	kubectl create namespace $(NAPESPACE)
 	kubectl config set-context --current --namespace=$(NAPESPACE)
 
@@ -147,14 +147,14 @@ minikube-tunnel:
 .PHONY: pod-deploy
 pod-deploy:	## [ k8s ] Deploy a pod with the image
 #	kubectl run ${BUILD_NAME} --image=${BUILD_NAME}:${BUILD_VERSION} --image-pull-policy=Never -n=$(NAPESPACE)
-	kubectl apply -f config/cluster/pancake-ns.yaml
-	kubectl apply -f config/cluster/pancake-storage.yaml
-	kubectl apply -f config/cluster/pancake-app.yaml
+	kubectl apply -f config/k8s/pancake-ns.yaml
+	kubectl apply -f config/k8s/pancake-storage.yaml
+	kubectl apply -f config/k8s/pancake-app.yaml
 
 
 .PHONY: pod-delete
 pod-delete: 	## [ k8s ] Delete the deployed pod
-	kubectl delete -f config/cluster/pancake-app.yaml --ignore-not-found --grace-period=3
+	kubectl delete -f config/k8s/pancake-app.yaml --ignore-not-found --grace-period=3
 
 
 .PHONY: pod-log
