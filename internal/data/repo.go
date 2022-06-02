@@ -73,6 +73,8 @@ func (r *Repo) PostData(tp string, d Data) (Data, error) {
 
 // UpdateData - takes Data and stores it as a new entity
 func (r *Repo) UpdateData(d Data) (Data, error) {
+
+	// TODO
 	return Data{}, nil
 }
 
@@ -95,7 +97,7 @@ func (r *Repo) GetData(ID string) (Data, error) {
 
 // DeleteData - based on the ID it removes a stored Data
 func (r *Repo) DeleteData(ID string) error {
-	return nil
+	return deleteDataByID(r.db, ID)
 }
 
 // GetAllData - based on the parameters it returns the matching Data as a slice
