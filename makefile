@@ -155,13 +155,3 @@ pod-info: 		## [ k8s ] Get kubectl info the cluster elements
 .PHONY: pod-log
 pod-log: 		## [ k8s ] Get logs of the pod streamed
 	kubectl logs -f animated-pancake
-
-
-#=======| Load testing |=======
-.PHONY: load-test-get
-load-test-get:	## [ Load testing ] Send 1000 request with 100 concurrent workers 
-	hey -m GET -c 100 -n 1000 http://localhost:6543/v1/
-
-.PHONY: load-test-post
-load-test-post:	## [ Load testing ] Send 1000 request with 100 concurrent workers 
-	hey -m POST -c 100 -n 1000  -H "Content-Type: application/json" -d '{"name": "linuxize", "email": "linuxize@example.com"}' http://localhost:6543/v1/network
