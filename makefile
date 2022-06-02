@@ -19,7 +19,7 @@ LDFLAGS=-ldflags="-w -s \
 ## Display help
 .PHONY: help
 help:  
-	@awk 'BEGIN {FS = ":.*##"; printf "\n\"$(BINARY_NAME) $(BUILD_VERSION)\" makefile\n\nUsage:  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\n\"$(BINARY_NAME) $(BUILD_VERSION)\" makefile\n\nUsage:  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-17s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 	
 #=======| Compile |=======
 .PHONY: fmt
@@ -127,11 +127,11 @@ minikube-up:	## [ Cluster ] Start a local Minikube cluster
 minikube-shutdown: ## [ Cluster ] Remove the local Minikube cluster
 	minikube delete
 
-.PHONY: minikube-deploy ## [ Cluster ] (Re)deploy pods to the local Minikube cluster
-minikube-deploy: pod-delete minikube-docker docker-build pod-deploy
+.PHONY: minikube-deploy	
+minikube-deploy: pod-delete minikube-docker docker-build pod-deploy ## [ Cluster ] Deploy pods to the local Minikube cluster
 
-.PHONY: minikube-tunnel ## [ Cluster ] Starts Minikube tunnel for LoadBalancer support
-minikube-tunnel:
+.PHONY: minikube-tunnel 
+minikube-tunnel: ## [ Cluster ] Starts Minikube tunnel for LoadBalancer support
 	minikube tunnel
 
 #=======| Kubernetes |=======
