@@ -38,23 +38,29 @@ func (h Handler) HandleNetwork(w http.ResponseWriter, r *http.Request) {
 	log.Printf("HandleNetwork is called")
 
 	switch r.Method {
+
+	// POST
 	case http.MethodPost:
-		b, _ := io.ReadAll(r.Body)
+		{
+			b, _ := io.ReadAll(r.Body)
 
-		var dat map[string]interface{}
-		if err := json.Unmarshal(b, &dat); err != nil {
-			errorResponse(w, InvalidInput, http.StatusBadRequest)
-			return
+			var dat map[string]interface{}
+			if err := json.Unmarshal(b, &dat); err != nil {
+				errorResponse(w, InvalidInput, http.StatusBadRequest)
+				return
+			}
+
+			dta, err := h.svc.PostData(data.NetworkType, data.Data{Payload: dat})
+			if err != nil {
+				errorResponse(w, InvalidInput, http.StatusBadRequest)
+				return
+			}
+			jsonResponse(w, dta, http.StatusOK)
 		}
-
-		dta, _ := h.svc.PostData(data.NetworkType, data.Data{Payload: dat})
-
-		jsonReply := data.AsJSONString(dta)
-
-		fmt.Fprintf(w, jsonReply)
-
 	default:
-		errorResponse(w, OperationNotSupported, http.StatusBadRequest)
+		{
+			errorResponse(w, OperationNotSupported, http.StatusBadRequest)
+		}
 	}
 }
 
@@ -68,45 +74,98 @@ func (h Handler) HandleRoot(w http.ResponseWriter, r *http.Request) {
 
 	// GET
 	case http.MethodGet:
-		if len(path) > 0 {
-			dta, err := h.svc.GetData(path)
-			if err != nil {
-				errorResponse(w, NotFound, http.StatusNotFound)
-				return
-			}
-			jsonResponse(w, dta, http.StatusOK)
+		{
+			if len(path) > 0 {
+				dta, err := h.svc.GetData(path)
+				if err != nil {
+					errorResponse(w, NotFound, http.StatusNotFound)
+					return
+				}
+				jsonResponse(w, dta, http.StatusOK)
 
-		} else {
-			query := r.URL.Query()
-			paramID := query.Get("id")
-			paramType := query.Get("type")
+			} else {
+				query := r.URL.Query()
+				paramID := query.Get("id")
+				paramType := query.Get("type")
 
-			dta, err := h.svc.GetAllData(paramID, paramType)
-			if err != nil {
-				errorResponse(w, NotFound, http.StatusNotFound)
-				return
+				dta, err := h.svc.GetAllData(paramID, paramType)
+				if err != nil {
+					errorResponse(w, NotFound, http.StatusNotFound)
+					return
+				}
+				jsonResponse(w, dta, http.StatusOK)
 			}
-			jsonResponse(w, dta, http.StatusOK)
 		}
 
 	// DELETE
 	case http.MethodDelete:
-		if len(path) == 0 {
-			errorResponse(w, MissingID, http.StatusBadRequest)
-			return
+		{
+			if len(path) == 0 {
+				errorResponse(w, MissingID, http.StatusBadRequest)
+				return
+			}
+
+			err := h.svc.DeleteData(path)
+			if err != nil {
+				errorResponse(w, NotFound, http.StatusNotFound)
+				return
+			}
+
+			resp := make(map[string]string)
+			resp["status"] = "ok"
+			jsonResponse(w, resp, http.StatusOK)
 		}
 
-		err := h.svc.DeleteData(path)
-		if err != nil {
-			errorResponse(w, NotFound, http.StatusNotFound)
-			return
+	// PUT
+	case http.MethodPut:
+		{
+			if len(path) == 0 {
+				errorResponse(w, MissingID, http.StatusBadRequest)
+				return
+			}
+
+			// Retrieve
+			dta, err := h.svc.GetData(path)
+
+			// == Fail for nonexiting ID
+			// if err != nil {
+			// 	errorResponse(w, NotFound, http.StatusNotFound)
+			// 	return
+			// }
+
+			// == FOR TESTING: Support for non-exiting keys
+			if err != nil {
+				dta = data.Data{
+					Metadata: data.Metadata{
+						Type: "UNKNOWN",
+					}}
+			}
+
+			// Get payload from Body
+			b, _ := io.ReadAll(r.Body)
+
+			var payload map[string]interface{}
+			if err := json.Unmarshal(b, &payload); err != nil {
+				errorResponse(w, InvalidInput, http.StatusBadRequest)
+				return
+			}
+
+			dta.Payload = payload
+			err = h.svc.UpdateData(path, dta)
+			if err := json.Unmarshal(b, &payload); err != nil {
+				errorResponse(w, InvalidInput, http.StatusBadRequest)
+				return
+			}
+
+			resp := make(map[string]string)
+			resp["status"] = "ok"
+			jsonResponse(w, resp, http.StatusOK)
+		}
+	default:
+		{
+			errorResponse(w, OperationNotSupported, http.StatusBadRequest)
 		}
 	}
-
-	resp := make(map[string]string)
-	resp["status"] = "ok"
-	jsonResponse(w, resp, http.StatusOK)
-
 }
 
 // HandleReadiness - handle readines and liveness probes
