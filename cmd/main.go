@@ -47,7 +47,7 @@ func Run() error {
 
 	// Start listening for requests
 	go func() {
-		repo := data.NewRepository(dbFilePath)
+		repo := data.NewRepo(dbFilePath)
 		svc := service.NewService(repo)
 		hnd := handler.NewHandler(svc)
 
